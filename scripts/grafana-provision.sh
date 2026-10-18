@@ -50,12 +50,12 @@ fi
 
 # Datasource : création, ou mise à jour si elle existe déjà.
 dsfile="$(mktemp)"
-python3 - "$dsfile" "$DS_NAME" "$GRAFANA_RO_PASSWORD" <<'PY'
+python3 - "$dsfile" "$DS_NAME" "$GRAFANA_RO_PASSWORD" "$GRAFANA_DB_HOST" <<'PY'
 import json, sys
-path, name, pw = sys.argv[1:4]
+path, name, pw, host = sys.argv[1:5]
 json.dump({
     "name": name, "type": "postgres", "access": "proxy",
-    "url": "localhost:5432", "user": "grafana_ro", "database": "monitoring", "isDefault": True,
+    "url": host + ":5432", "user": "grafana_ro", "database": "monitoring", "isDefault": True,
     "jsonData": {"sslmode": "disable", "postgresVersion": 1700, "timescaledb": False},
     "secureJsonData": {"password": pw},
 }, open(path, "w"))
@@ -84,12 +84,12 @@ http GET "/api/datasources/uid/$DS_UID/health"
 if [ -n "${GRAFANA_THRESHOLDS_PASSWORD:-}" ]; then
     DS2_NAME="ASEMON Seuils"
     dsfile="$(mktemp)"
-    python3 - "$dsfile" "$DS2_NAME" "$GRAFANA_THRESHOLDS_PASSWORD" <<'PY'
+    python3 - "$dsfile" "$DS2_NAME" "$GRAFANA_THRESHOLDS_PASSWORD" "$GRAFANA_DB_HOST" <<'PY'
 import json, sys
-path, name, pw = sys.argv[1:4]
+path, name, pw, host = sys.argv[1:5]
 json.dump({
     "name": name, "uid": "asemon-seuils", "type": "postgres", "access": "proxy",
-    "url": "localhost:5432", "user": "grafana_thresholds", "database": "monitoring", "isDefault": False,
+    "url": host + ":5432", "user": "grafana_thresholds", "database": "monitoring", "isDefault": False,
     "jsonData": {"sslmode": "disable", "postgresVersion": 1700, "timescaledb": False},
     "secureJsonData": {"password": pw},
 }, open(path, "w"))

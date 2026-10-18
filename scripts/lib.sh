@@ -27,6 +27,7 @@ load_env() {
     SAMPLE_INTERVAL="${SAMPLE_INTERVAL:-2}"
     INSTANCE_NAME="${INSTANCE_NAME:-VM-Cible}"
     GRAFANA_ADMIN_PASSWORD="${GRAFANA_ADMIN_PASSWORD:-}"
+    GRAFANA_DB_HOST="${GRAFANA_DB_HOST:-localhost}"
     POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
     TARGET_ALLOW_SUBNET="${TARGET_ALLOW_SUBNET:-}"
     PGCONF_DIR="/etc/postgresql/$PG_VERSION/main"
@@ -80,6 +81,25 @@ install_file() {
     install -m "$mode" "$src" "$dst"
     CHANGED=1
     log "installé : $dst"
+}
+
+# pip_install_manifest VENV MANIFESTE_PAR_DEFAUT... : installe le manifeste Python du paquet
+# (manifeste.txt à la racine d'un paquet de déploiement) ; sinon le premier fichier par défaut
+# qui existe (dépôt Git) ; sinon les spécifications données après "--".
+pip_install_manifest() {
+    local venv="$1"; shift
+    local m="$REPO_DIR/manifeste.txt"
+    if [ ! -f "$m" ]; then
+        m=""
+        while [ $# -gt 0 ] && [ "$1" != "--" ]; do [ -f "$1" ] && { m="$1"; break; }; shift; done
+    fi
+    if [ -n "$m" ]; then
+        "$venv/bin/pip" install -q -r "$m"
+    else
+        while [ $# -gt 0 ] && [ "$1" != "--" ]; do shift; done
+        shift || true
+        "$venv/bin/pip" install -q "$@"
+    fi
 }
 
 # --- Dépôts et paquets ---------------------------------------------------------------

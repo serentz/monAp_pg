@@ -1,0 +1,6 @@
+# Plugins Grafana requis par les dashboards monAp_pg : un identifiant par ligne (version facultative,
+# ex. "volkovlabs-form-panel 6.3.5"). Lu par scripts/install-grafana.sh.
+# Boîtes défilantes du SQL et des plans (v2.1)
+marcusolsson-dynamictext-panel
+# Formulaire de modification des seuils (Release 4c)
+volkovlabs-form-panel

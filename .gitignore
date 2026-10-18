@@ -13,3 +13,4 @@ __pycache__/
 
 # Paramètres des scripts d'installation (mots de passe)
 scripts/asemon.env
+
