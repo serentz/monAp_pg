@@ -14,5 +14,3 @@ __pycache__/
 # Paramètres des scripts d'installation (mots de passe)
 scripts/asemon.env
 
-# Archives de déploiement (construites par packaging/build_packages.sh)
-dist/

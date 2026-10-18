@@ -22,21 +22,21 @@ Le détail (variables utiles, étapes manuelles équivalentes, planification, d�
 
 ## Construire les archives
 
-Les archives ne sont pas versionnées dans Git : elles sont fabriquées à partir du dépôt (une seule source de vérité).
+Les archives sont fabriquées à partir du dépôt par `build_packages.sh` et déposées dans le dossier `Deploy/` (versionné : on les récupère avec un simple `git pull`).
 
 ```bash
 packaging/build_packages.sh            # version = git describe ; ou : packaging/build_packages.sh v2.2
-# -> dist/monAp_pg_instance_cible.tgz, dist/monAp_pg_instance_monitoring.tgz, dist/monAp_pg_grafana.tgz, dist/SHA256SUMS
+# -> Deploy/monAp_pg_instance_cible.tgz, Deploy/monAp_pg_instance_monitoring.tgz, Deploy/monAp_pg_grafana.tgz, Deploy/SHA256SUMS
 ```
 
 Sous Windows : Git Bash ou WSL (le script a besoin de `bash`, `tar`, `gzip`, `sha256sum`, `python3`). Copie vers les VM :
 
 ```powershell
-scp dist\monAp_pg_instance_monitoring.tgz admin01@192.168.1.28:~/
-scp dist\monAp_pg_instance_cible.tgz      admin01@192.168.1.30:~/
+scp Deploy\monAp_pg_instance_monitoring.tgz admin01@192.168.1.28:~/
+scp Deploy\monAp_pg_instance_cible.tgz      admin01@192.168.1.30:~/
 ```
 
-Les archives sont **reproductibles** : mêmes sources, mêmes octets (`dist/SHA256SUMS` permet de le constater). Ce qui est propre aux archives (LISEZMOI, `install.sh`, `verify.sh`, manifeste, cron) est dans `packaging/templates/`.
+Les archives sont **reproductibles** : mêmes sources, mêmes octets (`Deploy/SHA256SUMS` permet de le constater). Ce qui est propre aux archives (LISEZMOI, `install.sh`, `verify.sh`, manifeste, cron) est dans `packaging/templates/`.
 
 ## Tests
 

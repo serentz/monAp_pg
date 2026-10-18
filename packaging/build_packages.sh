@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ============================================================
-# monAp_pg : construit les 3 paquets de déploiement dans dist/
+# monAp_pg : construit les 3 paquets de déploiement dans Deploy/
 #
 #   packaging/build_packages.sh [VERSION]      (VERSION par défaut : git describe)
 #
-#   dist/monAp_pg_instance_cible.tgz        VM-Cible : collecteur, échantillonneur, parseur de journaux
-#   dist/monAp_pg_instance_monitoring.tgz   VM-Monitoring : repository PostgreSQL, SQL, timers, rétention
-#   dist/monAp_pg_grafana.tgz               Grafana : plugins, source de données, dashboards
-#   dist/SHA256SUMS                         empreintes des 3 archives
+#   Deploy/monAp_pg_instance_cible.tgz        VM-Cible : collecteur, échantillonneur, parseur de journaux
+#   Deploy/monAp_pg_instance_monitoring.tgz   VM-Monitoring : repository PostgreSQL, SQL, timers, rétention
+#   Deploy/monAp_pg_grafana.tgz               Grafana : plugins, source de données, dashboards
+#   Deploy/SHA256SUMS                         empreintes des 3 archives
 #
 # Les fichiers viennent du dépôt (une seule source) ; packaging/templates/ ne contient que ce qui est
 # propre aux paquets (LISEZMOI, install.sh, verify.sh, manifeste, cron). Archives reproductibles :
@@ -18,7 +18,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TPL="$ROOT/packaging/templates"
-OUT="${OUT_DIR:-$ROOT/dist}"
+OUT="${OUT_DIR:-$ROOT/Deploy}"
 
 VERSION="${1:-}"
 if [ -z "$VERSION" ]; then
