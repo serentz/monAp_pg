@@ -35,6 +35,8 @@ ATTENTION
   Dossier des VM et de leurs disques. Defaut : C:\HyperV\monAp_pg.
 .PARAMETER AdminUser
   Utilisateur cree sur les 2 VM. Defaut : admin01. Le mot de passe est demande a l'execution (ou -AdminPassword).
+.PARAMETER AdminPassword
+  Mot de passe (SecureString). Sinon il est demande a la saisie.
 .PARAMETER SshPublicKeyFile
   Cle publique SSH a installer. Defaut : ~\.ssh\id_ed25519.pub ou id_rsa.pub s'ils existent.
 .PARAMETER Keyboard
@@ -48,16 +50,19 @@ ATTENTION
 .PARAMETER NoConsole
   N'ouvre pas les consoles des VM pendant l'installation.
 .PARAMETER Help
-  Affiche cette aide et quitte (ne demande pas les droits administrateur). Equivalent : Get-Help .\create_vms.ps1 -Full
+  Affiche cette aide et quitte (ne demande pas les droits administrateur). Equivalent : Get-Help .\create_vms.ps1 -Detailed
 
-.EXAMPLE 
-  .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso" -NetAdapterName "Ethernet"   # 1er lancement : cree le commutateur externe
+.EXAMPLE
+  .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso" -NetAdapterName "Ethernet"
+  Premier lancement : cree le commutateur externe Monitoring-Switch sur la carte "Ethernet", puis les 2 VM.
 
 .EXAMPLE
   .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso"
+  Lancement suivant : le commutateur existe deja.
 
 .EXAMPLE
-  .\create_vms.ps1 -Destroy        # supprime les 2 VM et leurs disques
+  .\create_vms.ps1 -Destroy
+  Supprime les 2 VM et leurs disques (le commutateur est conserve).
 #>
 [CmdletBinding()]
 param(
@@ -83,7 +88,7 @@ $ErrorActionPreference = 'Stop'
 
 # Aide : avant tout controle, pour fonctionner meme sans droits administrateur
 if ($Help) {
-    Get-Help -Name $PSCommandPath -Full
+    Get-Help -Name $PSCommandPath -Detailed
     return
 }
 if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
