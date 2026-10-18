@@ -85,6 +85,47 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 
 `python/config.py` contient des mots de passe : il n'est **jamais** versionné (`.gitignore`). Partir de `config.py.example`.
 
+## Le dossier Deploy : archives de déploiement
+
+`Deploy/` contient **les fichiers à copier sur les machines**, prêts à l'emploi : une archive par fonction. On n'a plus besoin de cloner le dépôt sur les VM.
+
+| Archive | À installer sur | Rôle | Ordre |
+|---|---|---|---|
+| `monAp_pg_instance_monitoring.tgz` | VM-Monitoring | repository PostgreSQL (base `monitoring`), scripts SQL, rôles, timers (rollup, partitions, rétention) | 1 |
+| `monAp_pg_grafana.tgz` | VM-Monitoring ou une autre machine | Grafana, plugins, source de données, 10 dashboards | 2 |
+| `monAp_pg_instance_cible.tgz` | chaque VM PostgreSQL à surveiller | collecteur (15 s), échantillonneur (2 s), parseur de journaux, rôle de collecte, services systemd | 3 |
+
+Chaque archive contient, à l'intérieur de son dossier :
+
+- `LISEZMOI.md` : composants à installer, SQL à exécuter, commandes de planification (systemd, et cron pour VM-Monitoring), vérification, mise à jour, désinstallation, dépannage ;
+- `install.sh` et `verify.sh` : installation (rejouable) et contrôles ;
+- `manifeste.txt` (les deux archives Python) : paquets du venv, `pip install -r manifeste.txt` ;
+- `scripts/asemon.env.example` : paramètres à copier en `asemon.env` (IP, mots de passe) ;
+- `SHA256SUMS` et `VERSION` : contrôle d'intégrité, version.
+
+`Deploy/SHA256SUMS` donne les empreintes des trois archives.
+
+**Utilisation, sur chaque machine** (VM-Monitoring d'abord, puis Grafana, puis les cibles) :
+
+```powershell
+# depuis Windows, après git pull
+scp Deploy\monAp_pg_instance_monitoring.tgz admin01@<ip VM-Monitoring>:~/
+```
+
+```bash
+tar xzf monAp_pg_instance_monitoring.tgz && cd monAp_pg_instance_monitoring
+sha256sum -c SHA256SUMS --quiet                    # contrôle d'intégrité
+cp scripts/asemon.env.example scripts/asemon.env && nano scripts/asemon.env
+sudo ./install.sh
+sudo ./verify.sh
+```
+
+Les mots de passe `COLLECTOR_PASSWORD` et `GRAFANA_RO_PASSWORD` doivent être **identiques** dans les archives qui les partagent. Plusieurs machines à surveiller : la même archive cible partout, avec un `INSTANCE_NAME` différent dans chaque `asemon.env`.
+
+**Régénérer les archives** (après une modification du code, des scripts ou des dashboards) : `packaging/build_packages.sh v2.2`, puis commiter `Deploy/`. Les fichiers de `Deploy/` sont générés : ne pas les modifier à la main. Détails, tests et changements apportés aux scripts : [docs/24-paquets-deploiement.md](docs/24-paquets-deploiement.md).
+
+> Statut : écrit le 2026-10-18, **à valider sur des VM neuves**.
+
 ## Installation : l'ordre à suivre
 
 | Étape | Où | Document |
@@ -106,16 +147,7 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 | Tout en un | les deux | [15-installation-scriptee](docs/15-installation-scriptee.md) |
 | Ou : une archive par fonction, sans cloner le dépôt | chaque machine | [24-paquets-deploiement](docs/24-paquets-deploiement.md) |
 
-**Déploiement par archives (v2.2)** : une archive par fonction, sans cloner le dépôt sur les VM. Chaque archive contient ses scripts, ses fichiers SQL, son `manifeste.txt` Python et un `LISEZMOI.md` (installation, SQL, planification systemd et cron). Voir [docs/24-paquets-deploiement.md](docs/24-paquets-deploiement.md).
-
-```bash
-# récupérer les archives dans Deploy/ (git pull), puis les copier sur les VM :
-scp Deploy/monAp_pg_instance_monitoring.tgz admin01@<ip VM-Monitoring>:~/     # à installer en premier
-scp Deploy/monAp_pg_grafana.tgz             admin01@<ip VM-Monitoring>:~/
-scp Deploy/monAp_pg_instance_cible.tgz      admin01@<ip VM-Cible>:~/
-# sur chaque VM : tar xzf <archive> && cd <dossier> && cp scripts/asemon.env.example scripts/asemon.env
-#                 nano scripts/asemon.env && sudo ./install.sh && sudo ./verify.sh
-```
+**Déploiement par archives (v2.2)** : voir la section [Le dossier Deploy](#le-dossier-deploy-archives-de-déploiement) ci-dessous.
 
 **Chemin court : installation scriptée** (VM déjà créées, Ubuntu installé) : deux scripts enchaînent toutes les étapes ci-dessus, voir [docs/15-installation-scriptee.md](docs/15-installation-scriptee.md).
 
