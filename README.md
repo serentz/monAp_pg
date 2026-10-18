@@ -73,6 +73,7 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 | `sql/` | Schéma du dépôt, rôles et droits, fonctions (rollup, purge, partitions, répartition `kcache_attr`). Numérotés dans l'ordre d'application |
 | `systemd/` | Services (`collector`, `sampler`, `logparser`) et timers (`rollup`, `retention`, `samples-maintenance`) |
 | `grafana/` | 7 dashboards en JSON, importables (dont `asemon-capacity`) |
+| `packaging/` | `build_packages.sh` : construit les 3 archives de déploiement (instance cible, instance monitoring, Grafana), `test_packages.sh` (voir `docs/24-paquets-deploiement.md`) |
 | `infra/hyperv/` | `create_vms.ps1` : commutateur et 2 VM Hyper-V avec Ubuntu installé automatiquement (voir `docs/23-creation-vm-hyperv.md`) |
 | `scripts/` | Installation scriptée (`install-monitoring.sh`, `install-target.sh`, `grafana-provision.sh`, `verify.sh`) ; `charge-lente.sh` (requêtes lentes pour tester les plans) |
 | `docs/` | Fiches d'installation et de fonctionnement, une par étape |
@@ -99,6 +100,8 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 | 12. Plans lisibles (v2.1) : `sql/12`, plugin Grafana, rattrapage | les deux | [17-plans-v2.1](docs/17-plans-v2.1.md) |
 | 13. Dashboards macro, intermédiaire, micro | Grafana | [11](docs/11-dashboard-macro.md), [12](docs/12-dashboard-intermediaire.md), [13](docs/13-dashboard-micro.md) |
 | Tout en un | les deux | [15-installation-scriptee](docs/15-installation-scriptee.md) |
+
+**Déploiement par archives** : une archive par fonction (instance cible, instance monitoring, Grafana), sans cloner le dépôt sur les VM : voir [docs/24-paquets-deploiement.md](docs/24-paquets-deploiement.md).
 
 **Chemin court : installation scriptée** (VM déjà créées, Ubuntu installé) : deux scripts enchaînent toutes les étapes ci-dessus, voir [docs/15-installation-scriptee.md](docs/15-installation-scriptee.md).
 

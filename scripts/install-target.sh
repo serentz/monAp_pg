@@ -122,7 +122,7 @@ if [ ! -x "$INSTALL_DIR/venv/bin/python3" ]; then
     log "Environnement Python"
     python3 -m venv "$INSTALL_DIR/venv"
 fi
-"$INSTALL_DIR/venv/bin/pip" install -q -r "$REPO_DIR/python/requirements.txt"
+pip_install_manifest "$INSTALL_DIR/venv" "$REPO_DIR/python/requirements.txt" -- "psycopg[binary]" psutil sqlparse
 ok "dépendances Python installées"
 
 # --- 5. Services ---------------------------------------------------------------------
@@ -140,7 +140,7 @@ psycopg.connect(f"host={sys.argv[1]} dbname=monitoring user=collector_writer pas
 PY
 then
     warn "Connexion au repository ($MONITORING_IP) impossible : les services démarrent mais n'écriront rien tant que VM-Monitoring ne répond pas."
-    warn "Vérifier : install-monitoring.sh exécuté ? SUBNET dans asemon.env ? IP de VM-Monitoring ?"
+    warn "Vérifier : paquet monitoring installé (install-monitoring.sh) ? SUBNET dans asemon.env ? IP de VM-Monitoring ?"
 fi
 
 systemctl enable asemon-collector asemon-sampler asemon-logparser >/dev/null 2>&1

@@ -1,0 +1,20 @@
+# monAp_pg : équivalent cron des trois timers systemd de VM-Monitoring.
+# À N'UTILISER QUE si systemd ne convient pas : install.sh installe déjà les timers
+# (asemon-rollup, asemon-samples-maintenance, asemon-retention). Ne pas activer les deux.
+#
+# Installation :  sudo cp cron/asemon-monitoring.cron /etc/cron.d/asemon-monitoring
+#                 sudo systemctl disable --now asemon-rollup.timer asemon-samples-maintenance.timer asemon-retention.timer
+# Les lignes tournent sous l'utilisateur postgres (connexion locale par socket, sans mot de passe).
+# La sortie va dans le journal système (logger) : journalctl -t asemon-rollup
+# Adapter /opt/asemon si INSTALL_DIR a été changé dans asemon.env.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Rollup horaire et valeurs des seuils : toutes les 5 minutes
+*/5 * * * * postgres psql -X -q -At -v ON_ERROR_STOP=1 -d monitoring -c "SELECT asemon.rollup_hourly();" -c "SELECT asemon.compute_kpi_values();" 2>&1 | logger -t asemon-rollup
+
+# Maintenance des partitions snap_samples : toutes les heures, à la minute 7
+7 * * * * postgres psql -X -q -At -v ON_ERROR_STOP=1 -d monitoring -c "SELECT asemon.maintain_samples();" 2>&1 | logger -t asemon-samples-maintenance
+
+# Rétention : une fois par jour à 03:17 (heure du serveur ; le timer systemd, lui, est en UTC)
+17 3 * * * postgres /opt/asemon/venv/bin/python3 /opt/asemon/app/retention.py 2>&1 | logger -t asemon-retention

@@ -91,7 +91,7 @@ mkdir -p "$INSTALL_DIR/app"
 if [ ! -x "$INSTALL_DIR/venv/bin/python3" ]; then
     python3 -m venv "$INSTALL_DIR/venv"
 fi
-"$INSTALL_DIR/venv/bin/pip" install -q "psycopg[binary]"
+pip_install_manifest "$INSTALL_DIR/venv" -- "psycopg[binary]"
 install -m 0644 -o root -g root "$REPO_DIR/python/retention.py" "$INSTALL_DIR/app/retention.py"
 ok "retention.py installé"
 
@@ -110,46 +110,13 @@ systemctl enable --now asemon-rollup.timer asemon-samples-maintenance.timer asem
 ok "timers actifs"
 
 # --- 5. Grafana --------------------------------------------------------------------
-if ! command -v grafana-server >/dev/null 2>&1; then
-    log "Installation de Grafana"
-    apt_install apt-transport-https software-properties-common wget gnupg
-    mkdir -p /etc/apt/keyrings
-    wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor -o /etc/apt/keyrings/grafana.gpg --yes
-    echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list
-    _APT_UPDATED=""
-    apt_install grafana
-fi
-# Panneau « Business Text » (v2.1) : affiche le SQL et les plans dans une boîte défilante
-if [ ! -d /var/lib/grafana/plugins/marcusolsson-dynamictext-panel ]; then
-    log "Installation du plugin Grafana marcusolsson-dynamictext-panel"
-    if grafana cli plugins install marcusolsson-dynamictext-panel >/dev/null 2>&1; then
-        chown -R grafana:grafana /var/lib/grafana/plugins 2>/dev/null || true
-        systemctl restart grafana-server
-        ok "plugin installé"
-    else
-        warn "Plugin non installé (accès à grafana.com ?). Les boîtes SQL et plan resteront vides : grafana cli plugins install marcusolsson-dynamictext-panel puis redémarrer Grafana."
-    fi
-fi
-# Panneau « Business Forms » (Release 4c) : formulaire de modification des seuils
-if [ ! -d /var/lib/grafana/plugins/volkovlabs-form-panel ]; then
-    log "Installation du plugin Grafana volkovlabs-form-panel"
-    if grafana cli plugins install volkovlabs-form-panel >/dev/null 2>&1; then
-        chown -R grafana:grafana /var/lib/grafana/plugins 2>/dev/null || true
-        systemctl restart grafana-server
-        ok "plugin installé"
-    else
-        warn "Plugin non installé (accès à grafana.com ?). Les seuils restent modifiables en SQL (docs/21) : grafana cli plugins install volkovlabs-form-panel puis redémarrer Grafana."
-    fi
-fi
-systemctl enable --now grafana-server >/dev/null 2>&1
-ok "Grafana installé et démarré (port 3000)"
-
-if [ -z "$GRAFANA_ADMIN_PASSWORD" ]; then
-    warn "GRAFANA_ADMIN_PASSWORD vide : datasource et dashboards non configurés."
-    warn "À faire à la main (voir docs/01-VM-Monitoring-repository-grafana.md §5 et docs/11 à 13), ou renseigner le mot de passe et relancer."
+# Installé par scripts/install-grafana.sh, présent dans le dépôt Git (tout sur une VM) et dans le
+# paquet monAp_pg_grafana. Le paquet monAp_pg_instance_monitoring ne l'embarque pas : Grafana s'installe
+# alors avec son propre paquet, sur cette VM ou sur une autre.
+if [ -x "$SCRIPT_DIR/install-grafana.sh" ]; then
+    "$SCRIPT_DIR/install-grafana.sh"
 else
-    check_password GRAFANA_ADMIN_PASSWORD
-    "$SCRIPT_DIR/grafana-provision.sh"
+    log "Grafana non installé ici (paquet monAp_pg_grafana : ./install.sh sur la VM de Grafana)."
 fi
 
 log "Terminé. Vérification : sudo ./scripts/verify.sh monitoring"

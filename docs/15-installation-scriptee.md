@@ -4,6 +4,8 @@
 >
 > **Statut : écrit le 2026-10-09, à valider sur des VM neuves.** Ce qui a été testé en local (PostgreSQL 16) : les scripts SQL appliqués deux fois de suite, les droits des rôles, la configuration PostgreSQL, la génération de `config.py`. Ce qui n'a **pas** pu être testé (pas de VM ni d'accès à `apt` ici) : l'installation des paquets, les unités systemd et l'appel à l'API Grafana. Au premier essai, garder le terminal ouvert et coller la sortie en cas d'erreur.
 
+> **Sans cloner le dépôt** : une archive par fonction (`monAp_pg_instance_cible`, `monAp_pg_instance_monitoring`, `monAp_pg_grafana`) embarque ces mêmes scripts : voir [24-paquets-deploiement.md](24-paquets-deploiement.md).
+
 **Hors périmètre, volontairement** : la création des VM (Hyper-V : commutateur, RAM fixe, ISO) et l'installation d'Ubuntu. Voir `01-VM-Monitoring.md` §1 et `02-VM-Cible.md` §1.
 
 ---
