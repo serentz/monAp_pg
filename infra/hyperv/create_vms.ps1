@@ -21,6 +21,35 @@ ATTENTION
 
   Rejouable : -Destroy supprime les VM (et leurs disques) pour recommencer de zero ; -Only limite a une VM.
 
+.PARAMETER UbuntuIso
+  Chemin complet du fichier .iso d'Ubuntu Server (pas un dossier). Obligatoire sauf avec -Destroy.
+.PARAMETER Network
+  External (defaut) ou Internal : voir plus haut.
+.PARAMETER NetAdapterName
+  Carte reseau physique du PC a relier au commutateur externe, seulement s'il faut le creer (ex. "Ethernet").
+.PARAMETER SwitchName
+  Nom du commutateur Hyper-V. Defaut : Monitoring-Switch.
+.PARAMETER Subnet
+  Mode Internal : trois premiers octets du reseau /24. Defaut : 192.168.70.
+.PARAMETER VmRoot
+  Dossier des VM et de leurs disques. Defaut : C:\HyperV\monAp_pg.
+.PARAMETER AdminUser
+  Utilisateur cree sur les 2 VM. Defaut : admin01. Le mot de passe est demande a l'execution (ou -AdminPassword).
+.PARAMETER SshPublicKeyFile
+  Cle publique SSH a installer. Defaut : ~\.ssh\id_ed25519.pub ou id_rsa.pub s'ils existent.
+.PARAMETER Keyboard
+  Disposition du clavier. Defaut : fr.
+.PARAMETER InstallTimeoutMin
+  Delai maximal d'installation, en minutes. Defaut : 60.
+.PARAMETER Only
+  Ne traiter que ces VM, ex. -Only VM-Cible.
+.PARAMETER Destroy
+  Supprime les VM du POC et leurs disques (confirmation OUI demandee). Le commutateur est conserve.
+.PARAMETER NoConsole
+  N'ouvre pas les consoles des VM pendant l'installation.
+.PARAMETER Help
+  Affiche cette aide et quitte (ne demande pas les droits administrateur). Equivalent : Get-Help .\create_vms.ps1 -Full
+
 .EXAMPLE 
   .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso" -NetAdapterName "Ethernet"   # 1er lancement : cree le commutateur externe
 
@@ -30,7 +59,6 @@ ATTENTION
 .EXAMPLE
   .\create_vms.ps1 -Destroy        # supprime les 2 VM et leurs disques
 #>
-#Requires -RunAsAdministrator
 [CmdletBinding()]
 param(
     [string]$UbuntuIso,
@@ -47,10 +75,20 @@ param(
     [int]$InstallTimeoutMin = 60,
     [string[]]$Only,                          # ne traiter que ces VM, ex. -Only VM-Cible
     [switch]$Destroy,                         # supprime les VM du POC (et rien d'autre)
-    [switch]$NoConsole                        # n'ouvre pas les consoles
+    [switch]$NoConsole,                       # n'ouvre pas les consoles
+    [Alias('h')][switch]$Help                # affiche l'aide et quitte
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Aide : avant tout controle, pour fonctionner meme sans droits administrateur
+if ($Help) {
+    Get-Help -Name $PSCommandPath -Full
+    return
+}
+if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw "Ce script doit etre lance dans un PowerShell ouvert en administrateur (aide : .\create_vms.ps1 -Help)."
+}
 $Here = $PSScriptRoot
 
 # Nom Hyper-V, nom du serveur, vCPU, RAM (Go), disque (Go), derniere partie de l'IP (mode Internal)

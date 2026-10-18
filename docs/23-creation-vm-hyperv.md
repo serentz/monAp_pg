@@ -9,6 +9,8 @@ Le script `infra/hyperv/create_vms.ps1` remplace les sections 1.2 et 2 du [guide
 
 La mémoire dynamique est désactivée (elle provoque des plantages pendant les installations), le démarrage sécurisé est réglé pour Linux (modèle *Autorité de certification UEFI Microsoft*), l'utilisateur est `admin01` et le clavier français.
 
+Aide intégrée (sans droits administrateur) : `.\infra\hyperv\create_vms.ps1 -Help` (ou `-h`).
+
 ## Prérequis
 
 - Windows 11 Pro, Enterprise ou Éducation avec Hyper-V (guide, section 1.1), 12 Go de RAM libres, 80 Go de disque.
