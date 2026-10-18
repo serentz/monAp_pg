@@ -15,6 +15,9 @@ autoinstall:
   ssh:
     install-server: true
     allow-pw: true
+  late-commands:
+    # demons Hyper-V (hv_kvp) : sans eux, Hyper-V ne voit pas l'adresse IP de la VM ; echec tolere
+    - curtin in-target --target=/target -- apt-get install -y linux-cloud-tools-virtual || true
   shutdown: poweroff
   user-data:
     hostname: {{NAME}}

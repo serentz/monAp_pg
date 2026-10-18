@@ -298,8 +298,19 @@ function Test-Port($ip, $port) {
     try { return $c.ConnectAsync($ip, $port).Wait(1500) } catch { return $false } finally { $c.Close() }
 }
 function Get-VmIPv4($vmName) {
+    # 1) adresse remontee par les services d'integration Hyper-V (demon hv_kvp dans la VM)
     $ips = (Get-VMNetworkAdapter -VMName $vmName).IPAddresses | Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' -and $_ -notlike '169.254.*' }
-    return ($ips | Select-Object -First 1)
+    if ($ips) { return ($ips | Select-Object -First 1) }
+    # 2) sinon, table ARP du PC a partir de l'adresse MAC de la VM (reseau externe ou interne)
+    $mac = (Get-VMNetworkAdapter -VMName $vmName).MacAddress
+    if ($mac -and $mac.Length -eq 12) {
+        $dash = ($mac -replace '(..)(?=.)', '$1-')
+        $n = Get-NetNeighbor -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+             Where-Object { $_.LinkLayerAddress -eq $dash -and $_.State -ne 'Unreachable' -and $_.IPAddress -notlike '169.254.*' -and $_.IPAddress -notlike '224.*' -and $_.IPAddress -notlike '*.255' } |
+             Select-Object -First 1
+        if ($n) { return $n.IPAddress }
+    }
+    return $null
 }
 $deadline = (Get-Date).AddMinutes(10)
 $addrOf = @{}
@@ -313,7 +324,12 @@ while ($up.Count -lt $vms.Count -and (Get-Date) -lt $deadline) {
             if (Test-Port $ip 22) { $up[$v.Name] = $true }
         }
     }
-    if ($up.Count -lt $vms.Count) { Start-Sleep -Seconds 10 }
+    if ($up.Count -lt $vms.Count) {
+        $left = [int]($deadline - (Get-Date)).TotalSeconds
+        $wait = ($vms | Where-Object { -not $up.ContainsKey($_.Name) }).Name -join ', '
+        Write-Host "    ... en attente de : $wait (abandon dans $left s)"
+        Start-Sleep -Seconds 10
+    }
 }
 
 Write-Host ""
