@@ -19,7 +19,7 @@ ATTENTION
                         Le commutateur est cree s'il n'existe pas : il faut alors -NetAdapterName.
     Internal          : commutateur interne + NAT 192.168.70.0/24, adresses fixes (.28 et .30), sans DHCP.
 
-  Rejouable : -Destroy supprime les VM (et leurs disques) pour recommencer de zero ; -Only limite a une VM.
+  Rejouable : -Destroy supprime les VM, leurs disques et le reseau cree par le script (commutateur interne, carte vEthernet, NAT) pour recommencer de zero ; -Only limite a une VM.
 
 .PARAMETER UbuntuIso
   Chemin complet du fichier .iso d'Ubuntu Server (pas un dossier). Obligatoire sauf avec -Destroy.
@@ -46,7 +46,7 @@ ATTENTION
 .PARAMETER Only
   Ne traiter que ces VM, ex. -Only VM-Cible.
 .PARAMETER Destroy
-  Supprime les VM du POC et leurs disques (confirmation OUI demandee). Le commutateur est conserve.
+  Supprime les VM du POC, leurs disques et le reseau cree par le script : NAT, commutateur interne et carte vEthernet de l'hote (confirmation OUI demandee). Avec -Only, le reseau est conserve.
 .PARAMETER NoConsole
   N'ouvre pas les consoles des VM pendant l'installation.
 .PARAMETER Help
@@ -127,7 +127,24 @@ if ($Destroy) {
         $dir = Join-Path $VmRoot $v.Name
         if (Test-Path -LiteralPath $dir) { Remove-Item -LiteralPath $dir -Recurse -Force }
     }
-    Write-Host "Reseau '$SwitchName' conserve. Relancer le script sans -Destroy pour recreer les VM."
+    if ($Only) {
+        Write-Host "Reseau '$SwitchName' conserve (-Only : les autres VM l'utilisent). Relancer le script sans -Destroy pour recreer les VM."
+    } else {
+        # Reseau cree par le script : NAT puis commutateur. Supprimer un commutateur interne retire aussi sa carte
+        # "vEthernet ($SwitchName)" de l'hote (sinon elles s'accumulent a chaque projet recree).
+        foreach ($n in @(Get-NetNat -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $SwitchName -or $_.InternalIPInterfaceAddressPrefix -eq "$Subnet.0/24" })) {
+            Remove-NetNat -Name $n.Name -Confirm:$false
+            Write-Host "[-] NAT $($n.Name) supprime"
+        }
+        $sw = Get-VMSwitch -Name $SwitchName -ErrorAction SilentlyContinue
+        if ($sw -and $sw.SwitchType -eq 'Internal') {
+            Remove-VMSwitch -Name $SwitchName -Force
+            Write-Host "[-] Commutateur '$SwitchName' et carte 'vEthernet ($SwitchName)' supprimes"
+        } elseif ($sw) {
+            Write-Host "[i] Commutateur '$SwitchName' (type $($sw.SwitchType)) conserve : il n'a pas ete cree par ce script ou relie une carte physique."
+        }
+        Write-Host "Relancer le script sans -Destroy pour recreer le reseau et les VM."
+    }
     return
 }
 
