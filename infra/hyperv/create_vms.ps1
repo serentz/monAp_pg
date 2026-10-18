@@ -11,6 +11,9 @@
   - le script attend la fin des installations (les VM s'eteignent seules), retire l'ISO et les disques
     graines, redemarre les VM, attend leur adresse IP et que SSH reponde.
 
+ATTENTION
+	PowerShell ouvert en administrateur. Fonctionnalite Windows "Hyper-V" requise.
+
   Deux modes reseau (-Network) :
     External (defaut) : commutateur externe 'Monitoring-Switch' (celui du guide), adresses DHCP du reseau local.
                         Le commutateur est cree s'il n'existe pas : il faut alors -NetAdapterName.
@@ -18,16 +21,14 @@
 
   Rejouable : -Destroy supprime les VM (et leurs disques) pour recommencer de zero ; -Only limite a une VM.
 
-.EXAMPLE
-  .\create_vms.ps1 -UbuntuIso "C:\ISO\ubuntu-26.04.1-live-server-amd64.iso"
+.EXAMPLE 
+  .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso" -NetAdapterName "Ethernet"   # 1er lancement : cree le commutateur externe
 
 .EXAMPLE
-  .\create_vms.ps1 -UbuntuIso "C:\ISO\ubuntu-26.04.1-live-server-amd64.iso" -NetAdapterName "Ethernet"   # 1er lancement : cree le commutateur externe
+  .\create_vms.ps1 -UbuntuIso "K:\ShareLinux\Image ISO\ubuntu-26.04.1-live-server-amd64.iso"
 
 .EXAMPLE
   .\create_vms.ps1 -Destroy        # supprime les 2 VM et leurs disques
-
-  PowerShell ouvert en administrateur. Fonctionnalite Windows "Hyper-V" requise.
 #>
 #Requires -RunAsAdministrator
 [CmdletBinding()]
