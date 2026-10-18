@@ -59,7 +59,10 @@ Toutes les captures (version 3, dont Capacity planning) : [images/Release_3](ima
 | Release 3 | Capacity planning : collecte des tailles (3a), dashboard et extrapolations (3b) | Fait, validé |
 | Release 4 | Multi-instance : schéma et agents (4a), dashboards par instance (4b), seuils (4c), niveau zéro et page instance (4d) | **terminée** : 4a à 4d validées ([docs/19](docs/19-multi-instance.md), [docs/20](docs/20-supervision-vm-monitoring.md), [docs/21](docs/21-seuils.md), [docs/22](docs/22-parc-et-instance.md)) |
 
-**En cours** : v2.1, plans d'exécution lisibles et mieux capturés (codée, à valider sur les VM : [docs/17-plans-v2.1.md](docs/17-plans-v2.1.md)).
+| v2.1 | Plans d'exécution lisibles et mieux capturés | codée, à valider sur les VM ([docs/17](docs/17-plans-v2.1.md)) |
+| v2.2 | Déploiement par archives : instance cible, instance monitoring, Grafana | **écrite**, à valider sur VM neuves ([docs/24](docs/24-paquets-deploiement.md)) |
+
+**En cours** : validation de la v2.1 et de la v2.2 sur des VM neuves (création des VM avec `create_vms.ps1`, puis installation par archives).
 
 **Prochaine release** : Release 5 (réplication). Voir [docs/16-roadmap-releases.md](docs/16-roadmap-releases.md).
 
@@ -72,10 +75,11 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 | `python/` | `collector.py` (snapshots toutes les 15 s, dont `pg_stat_kcache`), `sampler.py` (sessions actives toutes les 2 s), `log_parser.py` (connexions, deadlocks, plans), `plan_format.py` (SQL et plans lisibles), `backfill_plans.py`, `retention.py` (rétention, VM-Monitoring), `config.py.example` |
 | `sql/` | Schéma du dépôt, rôles et droits, fonctions (rollup, purge, partitions, répartition `kcache_attr`). Numérotés dans l'ordre d'application |
 | `systemd/` | Services (`collector`, `sampler`, `logparser`) et timers (`rollup`, `retention`, `samples-maintenance`) |
-| `grafana/` | 7 dashboards en JSON, importables (dont `asemon-capacity`) |
-| `packaging/` | `build_packages.sh` : construit les 3 archives de déploiement (instance cible, instance monitoring, Grafana), `test_packages.sh` (voir `docs/24-paquets-deploiement.md`) |
+| `grafana/` | 10 dashboards en JSON, importables (parc, instance, macro, intermédiaire, micro, session, requête, capacity, seuils, dashboard d'origine) et `plugins.txt` (plugins Grafana requis) |
+| `Deploy/` | **Les 3 archives de déploiement** (`monAp_pg_instance_cible.tgz`, `monAp_pg_instance_monitoring.tgz`, `monAp_pg_grafana.tgz`) et leurs empreintes |
+| `packaging/` | `build_packages.sh` : construit les archives de `Deploy/` ; `test_packages.sh` ; modèles des LISEZMOI (voir `docs/24-paquets-deploiement.md`) |
 | `infra/hyperv/` | `create_vms.ps1` : commutateur et 2 VM Hyper-V avec Ubuntu installé automatiquement (voir `docs/23-creation-vm-hyperv.md`) |
-| `scripts/` | Installation scriptée (`install-monitoring.sh`, `install-target.sh`, `grafana-provision.sh`, `verify.sh`) ; `charge-lente.sh` (requêtes lentes pour tester les plans) |
+| `scripts/` | Installation scriptée (`install-monitoring.sh`, `install-target.sh`, `install-grafana.sh`, `grafana-provision.sh`, `verify.sh`) ; `charge-lente.sh` (requêtes lentes pour tester les plans) |
 | `docs/` | Fiches d'installation et de fonctionnement, une par étape |
 | `images/` | Captures et références visuelles |
 
@@ -100,8 +104,18 @@ Suites possibles : alertes Grafana, mesure du volume réel après plusieurs jour
 | 12. Plans lisibles (v2.1) : `sql/12`, plugin Grafana, rattrapage | les deux | [17-plans-v2.1](docs/17-plans-v2.1.md) |
 | 13. Dashboards macro, intermédiaire, micro | Grafana | [11](docs/11-dashboard-macro.md), [12](docs/12-dashboard-intermediaire.md), [13](docs/13-dashboard-micro.md) |
 | Tout en un | les deux | [15-installation-scriptee](docs/15-installation-scriptee.md) |
+| Ou : une archive par fonction, sans cloner le dépôt | chaque machine | [24-paquets-deploiement](docs/24-paquets-deploiement.md) |
 
-**Déploiement par archives** : une archive par fonction (instance cible, instance monitoring, Grafana), sans cloner le dépôt sur les VM : voir [docs/24-paquets-deploiement.md](docs/24-paquets-deploiement.md).
+**Déploiement par archives (v2.2)** : une archive par fonction, sans cloner le dépôt sur les VM. Chaque archive contient ses scripts, ses fichiers SQL, son `manifeste.txt` Python et un `LISEZMOI.md` (installation, SQL, planification systemd et cron). Voir [docs/24-paquets-deploiement.md](docs/24-paquets-deploiement.md).
+
+```bash
+# récupérer les archives dans Deploy/ (git pull), puis les copier sur les VM :
+scp Deploy/monAp_pg_instance_monitoring.tgz admin01@<ip VM-Monitoring>:~/     # à installer en premier
+scp Deploy/monAp_pg_grafana.tgz             admin01@<ip VM-Monitoring>:~/
+scp Deploy/monAp_pg_instance_cible.tgz      admin01@<ip VM-Cible>:~/
+# sur chaque VM : tar xzf <archive> && cd <dossier> && cp scripts/asemon.env.example scripts/asemon.env
+#                 nano scripts/asemon.env && sudo ./install.sh && sudo ./verify.sh
+```
 
 **Chemin court : installation scriptée** (VM déjà créées, Ubuntu installé) : deux scripts enchaînent toutes les étapes ci-dessus, voir [docs/15-installation-scriptee.md](docs/15-installation-scriptee.md).
 
@@ -112,7 +126,7 @@ sudo ./scripts/install-target.sh          # ensuite, sur VM-Cible
 sudo ./scripts/verify.sh monitoring|target
 ```
 
-Ordre des scripts SQL (VM-Monitoring) : `01, 02, 04, 05, 06, 08, 09, 10, 11, 12, 13, 14, 15` (`14` puis `15` : voir [docs/19](docs/19-multi-instance.md) pour une mise à jour) ; `03` sur VM-Cible ; `07` est un brouillon, **ne pas l'appliquer**. Les scripts sont rejouables. Toujours VM-Monitoring avant VM-Cible : le schéma doit exister avant que le collecteur écrive dedans.
+Ordre des scripts SQL (VM-Monitoring) : `01, 02, 04, 05, 06, 08, 09, 10, 11, 12, 13, 14, 15, 16, 17` (`14` puis `15` : voir [docs/19](docs/19-multi-instance.md) pour une mise à jour) ; `03` sur VM-Cible ; `07` est un brouillon, **ne pas l'appliquer**. Les scripts sont rejouables. Toujours VM-Monitoring avant VM-Cible : le schéma doit exister avant que le collecteur écrive dedans.
 
 ## Réglages courants
 
